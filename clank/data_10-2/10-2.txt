@@ -1,0 +1,2 @@
+testing the data collection
+logged rpm and sheave position while running on the test stand
