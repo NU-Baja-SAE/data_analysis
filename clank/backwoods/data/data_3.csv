@@ -1,3 +1,4 @@
+engine_rpm, wheel_rpm, secondary_rpm, sheave_position, brake_position
 0, 0.000000, 0.000000, -91, 0.000000
 0, 0.000000, 0.000000, -90, 0.000000
 0, 0.000000, 0.000000, -90, 0.000000
