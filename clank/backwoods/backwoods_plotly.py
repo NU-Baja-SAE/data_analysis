@@ -59,7 +59,7 @@ if engine_col:
 
 # filter wheel rpm with a moving average to reduce noise
 if wheel_col:
-    df[wheel_col] = df[wheel_col].rolling(window=7, center=True).mean()
+    df[wheel_col] = df[wheel_col].rolling(window=15, center=True).mean()
 
 # make a col for secondary rpm from wheel rpm 
 if secondary_col is None and wheel_col:
