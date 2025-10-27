@@ -2,24 +2,10 @@ from pathlib import Path
 import sys
 import pandas as pd
 from plotly.subplots import make_subplots
-
-#!/usr/bin/env python3
-"""
-backwoods_data.py
-
-Read data/data_3.csv and create interactive plots with plotly.
-Plots:
- - Row 1: engine_rpm, wheel_rpm, secondary_rpm (if present)
- - Row 2: sheave_position
- - Row 3: brake_position (accepts typo 'brake_postion')
-
-Saves an HTML file next to this script and opens an interactive view.
-"""
-
 import plotly.graph_objects as go
 
 
-PATH = "data_13.csv"
+PATH = "data_7.csv"
 
 # load CSV
 df = pd.read_csv(PATH)
@@ -41,13 +27,17 @@ secondary_col = get_col(["secondary_rpm", "secondary rpm", "secondary"])
 secondary_setpoint = get_col(["sheave_setpoint", "sheave_pos_setpoint", "sheave_position_setpoint"])
 sheave_col = get_col(["sheave_position", "sheave position", "sheave"])
 brake_col = get_col(["brake_position", "brake position", "brake_postion", "brake"])
+pwm_col = get_col(["pwm", "throttle_pwm", "motor_pwm"])
 
 
 # use an index as x if no explicit time column present
-time_col = get_col(["time", "timestamp", "t", "time_s"])
+time_col = get_col(["time", "timestamp", "t", "time_sec", "time_us"])
 if time_col is None:
     df = df.reset_index().rename(columns={"index": "sample_index"})
     time_col = "sample_index"
+elif "us" in time_col.lower():
+    # convert microseconds to seconds for readability
+    df[time_col] = df[time_col] / 1_000_000
 
 #filter data
 # remove outliers where engine_rpm > 8000 and filter with moving average
@@ -55,19 +45,13 @@ if engine_col:
     df = df[df[engine_col] <= 8000] if engine_col else df
     # correct for wrong magent count
     # df[engine_col] = df[engine_col] * 0.667
-    df[engine_col] = df[engine_col].rolling(window=3, center=True).mean()
+    # df[engine_col] = df[engine_col].rolling(window=3, center=True).mean()
 
 
 
 # filter wheel rpm with a moving average to reduce noise
 if wheel_col:
     df[wheel_col] = df[wheel_col].rolling(window=3, center=True).mean()
-
-# # make a col for secondary rpm from wheel rpm 
-# if secondary_col is None and wheel_col:
-#     gear_ratio = 6.667  # fixed gear ratio
-#     df["secondary_rpm"] = df[wheel_col] * gear_ratio
-#     secondary_col = "secondary_rpm"
 
 
 # make a new column for the cvt gear ratio if both engine and wheel rpm are present
@@ -77,26 +61,30 @@ if engine_col and wheel_col:
     
 
 
-# convert wheel rpm to mph, assuming 22 inch diameter wheels
-# if wheel_col:
-#     wheel_radius_inch = 11  # 22 inch diameter
-#     inch_per_mile = 63360
-#     minutes_per_hour = 60
-#     df[wheel_col] = df[wheel_col] * (2 * 3.14159 * wheel_radius_inch) / inch_per_mile * minutes_per_hour
-
 # mph col from secondary rpm if present
 if secondary_col:
     wheel_radius_inch = 11  # 22 inch diameter
     inch_per_mile = 63360
     minutes_per_hour = 60
-    df["mph"] = df[secondary_col] * (2 * 3.14159 * wheel_radius_inch) / inch_per_mile * minutes_per_hour / geeb_reduction
+    df["mph_2nd"] = df[secondary_col] * (2 * 3.14159 * wheel_radius_inch) / inch_per_mile * minutes_per_hour / geeb_reduction
+
+# make a mph col from wheel rpm if present
+if wheel_col:
+    wheel_radius_inch = 11  # 22 inch diameter
+    inch_per_mile = 63360
+    minutes_per_hour = 60
+    df["mph_wheel"] = df[wheel_col] * (2 * 3.14159 * wheel_radius_inch) / inch_per_mile * minutes_per_hour
 
 if sheave_col:
     df[sheave_col] = df[sheave_col].rolling(window=5, center=True).mean()
 
+# cap pwm to -255 to 255 if present without removing rows
+if pwm_col:
+    df[pwm_col] = df[pwm_col].clip(-255, 255)
 
 
-# create subplots: 3 rows sharing x-axis
+
+# create subplots: 7 rows sharing x-axis
 fig = make_subplots(
     rows=7, cols=1, shared_xaxes=True,
     vertical_spacing=0.06,
@@ -105,10 +93,10 @@ fig = make_subplots(
         "Engine RPM",
         "Car Speed (MPH from Wheel RPM)",
         "Sheave Position",
+        "PWM",
         "Gear Ratio (Engine RPM / (Wheel RPM * 6.67))" if "cvt_gear_ratio" in df.columns else "",
         "Gear Ratio vs Sheave Position",
-        "Shift Plot",
-        "PWM"
+        "Shift Plot"
     ],
 )
 
@@ -118,8 +106,13 @@ fig.add_trace(
     row=1, col=1
 )
 
+# Row 2: MPH trace
 fig.add_trace(
-    go.Scatter(x=df[time_col], y=df["mph"], mode="lines", name="wheel_rpm", line=dict(color="red")),
+    go.Scatter(x=df[time_col], y=df["mph_2nd"], mode="lines", name="secondary_speed", line=dict(color="red")),
+    row=2, col=1
+)
+fig.add_trace(
+    go.Scatter(x=df[time_col], y=df["mph_wheel"], mode="lines", name="wheel_speed", line=dict(color="blue")),
     row=2, col=1
 )
 
@@ -133,39 +126,39 @@ fig.add_trace(
     row=3, col=1
 )
 
-
-# Row 4: gear ratio if available
+# Row 4: PWM
 fig.add_trace(
-    go.Scatter(x=df[time_col], y=df["cvt_gear_ratio"], mode="lines", name="cvt_gear_ratio", line=dict(color="purple")),
-    row=4, col=1)
-
-
-
-# Row 5: gear ratio vs sheave position scatter
-fig.add_trace(
-    go.Scatter(x=df[sheave_col], y=df["cvt_gear_ratio"], mode="markers", name="gear_ratio_vs_sheave", marker=dict(color="orange", size=5, opacity=0.6)),
-    row=5, col=1
+    go.Scatter(x=df[time_col], y=df[pwm_col], mode="lines", name="pwm", line=dict(color="black")),
+    row=4, col=1
 )
 
-# Row 6: shift plot (engine rpm vs secondary rpm)
+
+# Row 5: gear ratio if available
 fig.add_trace(
-    go.Scatter(x=df["mph"], y=df[engine_col], mode="markers", name="shift_plot", marker=dict(color="brown", size=5, opacity=0.6)),
+    go.Scatter(x=df[time_col], y=df["cvt_gear_ratio"], mode="lines", name="cvt_gear_ratio", line=dict(color="purple")),
+    row=5, col=1)
+
+
+
+# Row 6: gear ratio vs sheave position scatter
+fig.add_trace(
+    go.Scatter(x=df[sheave_col], y=df["cvt_gear_ratio"], mode="markers", name="gear_ratio_vs_sheave", marker=dict(color="orange", size=5, opacity=0.6)),
     row=6, col=1
 )
 
-# Row 7: PWM if present
-pwm_col = get_col(["pwm", "throttle_pwm", "motor_pwm"])
-if pwm_col:
-    fig.add_trace(
-        go.Scatter(x=df[time_col], y=df[pwm_col], mode="lines", name="pwm", line=dict(color="black")),
-        row=7, col=1
-    )
+# Row 7: shift plot (engine rpm vs secondary rpm)
+fig.add_trace(
+    go.Scatter(x=df["mph_2nd"], y=df[engine_col], mode="markers", name="shift_plot", marker=dict(color="brown", size=5, opacity=0.6)),
+    row=7, col=1
+)
+
+
 
 sheave_setpoints = [
     {"pos": -90, "name": "sheave_idle", "color" : "black"}, 
-    {"pos": -65, "name": "sheave_low", "color" : "orange"}, 
+    {"pos": -35, "name": "sheave_low", "color" : "orange"}, 
     {"pos": 50, "name": "sheave_low_max", "color" : "blue"}, 
-    {"pos": 220, "name": "sheave_high", "color" : "red"}]
+    {"pos": 300, "name": "sheave_high", "color" : "red"}]
 
 engine_rpm_setpoints = [
     {"rpm": 1900, "name": "engine_idle", "color" : "orange"}, 
@@ -210,6 +203,11 @@ fig.update_xaxes(title_text=time_col, row=4, col=1)
 fig.update_yaxes(title_text="Engine RPM", row=1, col=1)
 fig.update_yaxes(title_text="MPH", row=2, col=1)
 fig.update_yaxes(title_text="Sheave position", row=3, col=1)
+fig.update_yaxes(title_text="PWM", row=4, col=1)
+fig.update_yaxes(title_text="Gear Ratio", row=5, col=1)
+fig.update_yaxes(title_text="Gear Ratio vs Sheave", row=6, col=1)
+fig.update_yaxes(title_text="Engine RPM vs 2nd MPH", row=7, col=1)
+
 
 # save and show
 out_html = Path(__file__).resolve().with_suffix(".plot.html")
