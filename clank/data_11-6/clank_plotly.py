@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
-PATH = "data_13.csv"
+PATH = "data_24.csv"
 
 # load CSV
 df = pd.read_csv(PATH)
@@ -28,6 +28,9 @@ secondary_setpoint = get_col(["sheave_setpoint", "sheave_pos_setpoint", "sheave_
 sheave_col = get_col(["sheave_position", "sheave position", "sheave"])
 brake_col = get_col(["brake_position", "brake position", "brake_postion", "brake"])
 pwm_col = get_col(["pwm", "throttle_pwm", "motor_pwm"])
+Kp_col = get_col(["kp_term", "kp"])
+Ki_col = get_col(["ki_term", "ki"])
+Kd_col = get_col(["kd_term", "kd"])
 
 
 # use an index as x if no explicit time column present
@@ -86,9 +89,9 @@ if pwm_col:
 
 # create subplots: 7 rows sharing x-axis
 fig = make_subplots(
-    rows=7, cols=1, shared_xaxes=True,
+    rows=8, cols=1, shared_xaxes=True,
     vertical_spacing=0.06,
-    row_heights=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    row_heights=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
     subplot_titles=[
         "Engine RPM",
         "Car Speed (MPH from Wheel RPM)",
@@ -96,7 +99,8 @@ fig = make_subplots(
         "PWM",
         "Gear Ratio (Engine RPM / (Wheel RPM * 6.67))" if "cvt_gear_ratio" in df.columns else "",
         "Gear Ratio vs Sheave Position",
-        "Shift Plot"
+        "Shift Plot",
+        "PID Terms"
     ],
 )
 
@@ -151,6 +155,20 @@ fig.add_trace(
     go.Scatter(x=df["mph_2nd"], y=df[engine_col], mode="markers", name="shift_plot", marker=dict(color="brown", size=5, opacity=0.6)),
     row=7, col=1
 )
+
+# Row 8: PID terms
+fig.add_trace(
+    go.Scatter(x=df[time_col], y=df[Kp_col], mode="lines", name="Kp Term", line=dict(color="red")),
+    row=8, col=1
+)
+fig.add_trace(
+    go.Scatter(x=df[time_col], y=df[Ki_col], mode="lines", name="Ki Term", line=dict(color="green")),
+    row=8, col=1
+)
+# fig.add_trace(
+#     go.Scatter(x=df[time_col], y=df[Kd_col], mode="lines", name="Kd Term", line=dict(color="blue")),
+#     row=8, col=1
+# )
 
 
 
