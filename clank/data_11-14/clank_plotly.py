@@ -87,19 +87,19 @@ if pwm_col:
 
 
 
-# create subplots: 7 rows sharing x-axis
+# create subplots: 8 rows sharing x-axis
 fig = make_subplots(
-    rows=8, cols=1, shared_xaxes=True,
-    vertical_spacing=0.06,
-    row_heights=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+    rows=5, cols=1, shared_xaxes=True,
+    vertical_spacing=0.02,
+    row_heights=[0.5, 0.5, 0.2, 0.2, 0.2],
     subplot_titles=[
         "Engine RPM",
         "Car Speed (MPH from Wheel RPM)",
         "Sheave Position",
         "PWM",
-        "Gear Ratio (Engine RPM / (Wheel RPM * 6.67))" if "cvt_gear_ratio" in df.columns else "",
-        "Gear Ratio vs Sheave Position",
-        "Shift Plot",
+        # "Gear Ratio (Engine RPM / (Wheel RPM * 6.67))" if "cvt_gear_ratio" in df.columns else "",
+        # "Gear Ratio vs Sheave Position",
+        # "Shift Plot",
         "PID Terms"
     ],
 )
@@ -137,37 +137,37 @@ fig.add_trace(
 )
 
 
-# Row 5: gear ratio if available
-fig.add_trace(
-    go.Scatter(x=df[time_col], y=df["cvt_gear_ratio"], mode="lines", name="cvt_gear_ratio", line=dict(color="purple")),
-    row=5, col=1)
+# # Row 5: gear ratio if available
+# fig.add_trace(
+#     go.Scatter(x=df[time_col], y=df["cvt_gear_ratio"], mode="lines", name="cvt_gear_ratio", line=dict(color="purple")),
+#     row=5, col=1)
 
 
 
-# Row 6: gear ratio vs sheave position scatter
-fig.add_trace(
-    go.Scatter(x=df[sheave_col], y=df["cvt_gear_ratio"], mode="markers", name="gear_ratio_vs_sheave", marker=dict(color="orange", size=5, opacity=0.6)),
-    row=6, col=1
-)
+# # Row 6: gear ratio vs sheave position scatter
+# fig.add_trace(
+#     go.Scatter(x=df[sheave_col], y=df["cvt_gear_ratio"], mode="markers", name="gear_ratio_vs_sheave", marker=dict(color="orange", size=5, opacity=0.6)),
+#     row=6, col=1
+# )
 
-# Row 7: shift plot (engine rpm vs secondary rpm)
-fig.add_trace(
-    go.Scatter(x=df["mph_2nd"], y=df[engine_col], mode="markers", name="shift_plot", marker=dict(color="brown", size=5, opacity=0.6)),
-    row=7, col=1
-)
+# # Row 7: shift plot (engine rpm vs secondary rpm)
+# fig.add_trace(
+#     go.Scatter(x=df["mph_2nd"], y=df[engine_col], mode="markers", name="shift_plot", marker=dict(color="brown", size=5, opacity=0.6)),
+#     row=7, col=1
+# )
 
 # Row 8: PID terms
 fig.add_trace(
     go.Scatter(x=df[time_col], y=df[Kp_col], mode="lines", name="Kp Term", line=dict(color="red")),
-    row=8, col=1
+    row=5, col=1
 )
 fig.add_trace(
     go.Scatter(x=df[time_col], y=df[Ki_col], mode="lines", name="Ki Term", line=dict(color="green")),
-    row=8, col=1
+    row=5, col=1
 )
 fig.add_trace(
     go.Scatter(x=df[time_col], y=df[Kd_col], mode="lines", name="Kd Term", line=dict(color="blue")),
-    row=8, col=1
+    row=5, col=1
 )
 
 
@@ -217,7 +217,13 @@ fig.update_layout(
     template="plotly_white",
 )
 
-fig.update_xaxes(title_text=time_col, row=4, col=1)
+fig.update_xaxes(title_text="Time (s)", row=5, col=1)
+# Ensure x-axis tick labels are visible on all subplots (Plotly hides them on shared x-axes by default)
+# Increase tick density with `nticks` so there are more tick marks across the x-axis
+fig.update_xaxes(showticklabels=True, nticks=24)
+
+
+
 fig.update_yaxes(title_text="Engine RPM", row=1, col=1)
 fig.update_yaxes(title_text="MPH", row=2, col=1)
 fig.update_yaxes(title_text="Sheave position", row=3, col=1)
