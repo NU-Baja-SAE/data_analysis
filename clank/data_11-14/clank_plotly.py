@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
-PATH = "data_24.csv"
+PATH = "data_37.csv"
 
 # load CSV
 df = pd.read_csv(PATH)
@@ -47,7 +47,7 @@ elif "us" in time_col.lower():
 if engine_col:
     df = df[df[engine_col] <= 8000] if engine_col else df
     # correct for wrong magent count
-    df[engine_col] = df[engine_col] * 0.667
+    # df[engine_col] = df[engine_col] * 0.667
     # df[engine_col] = df[engine_col].rolling(window=3, center=True).mean()
 
 
@@ -115,10 +115,10 @@ fig.add_trace(
     go.Scatter(x=df[time_col], y=df["mph_2nd"], mode="lines", name="secondary_speed", line=dict(color="red")),
     row=2, col=1
 )
-fig.add_trace(
-    go.Scatter(x=df[time_col], y=df["mph_wheel"], mode="lines", name="wheel_speed", line=dict(color="blue")),
-    row=2, col=1
-)
+# fig.add_trace(
+#     go.Scatter(x=df[time_col], y=df["mph_wheel"], mode="lines", name="wheel_speed", line=dict(color="blue")),
+#     row=2, col=1
+# )
 
 # Row 3: sheave position
 fig.add_trace(
@@ -165,10 +165,10 @@ fig.add_trace(
     go.Scatter(x=df[time_col], y=df[Ki_col], mode="lines", name="Ki Term", line=dict(color="green")),
     row=8, col=1
 )
-# fig.add_trace(
-#     go.Scatter(x=df[time_col], y=df[Kd_col], mode="lines", name="Kd Term", line=dict(color="blue")),
-#     row=8, col=1
-# )
+fig.add_trace(
+    go.Scatter(x=df[time_col], y=df[Kd_col], mode="lines", name="Kd Term", line=dict(color="blue")),
+    row=8, col=1
+)
 
 
 
