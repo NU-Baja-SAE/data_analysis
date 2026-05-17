@@ -5,7 +5,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
 
-PATH = "data_37.csv"
+PATH = "data_4.csv"
 
 # load CSV
 df = pd.read_csv(PATH)
@@ -94,7 +94,7 @@ fig = make_subplots(
     row_heights=[0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
     subplot_titles=[
         "Engine RPM",
-        "Car Speed (MPH from Wheel RPM)",
+        "Car Speed (MPH from Secondary RPM)",
         "Sheave Position",
         "PWM",
         "Gear Ratio (Engine RPM / (Wheel RPM * 6.67))" if "cvt_gear_ratio" in df.columns else "",
